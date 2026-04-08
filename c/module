@@ -10,6 +10,9 @@
 #include "kernel.h"
 #include "modhead.h"
 
+#include "swis.h"
+#include "riscos/Vectors.h"
+
 #define DEBUG
 
 #ifdef DEBUG
@@ -33,6 +36,7 @@
  **************************************************************************/
 _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
 {
+    _swix(OS_Claim, _INR(0, 2), WrchV, WrchV_Entry, pw);
     dprintf("Module ExampleModule initialised\n");
     return NULL;
 }
@@ -53,5 +57,24 @@ _kernel_oserror *Mod_Init(const char *tail, int podule_base, void *pw)
 _kernel_oserror *Mod_Final(int fatal, int podule_base, void *pw)
 {
     dprintf("Module ExampleModule dying\n");
+    _swix(OS_Release, _INR(0, 2), WrchV, WrchV_Entry, pw);
     return NULL;
+}
+
+
+/***************************************************************************
+ * Function:     WrchV_Handler
+ * Description:  Vector handler function
+ * Parameters:   r  = pointer to register block on entry
+ *               pw = private word for module
+ * On exit:      Update r to alter return values
+ *               Return VECTOR_CLAIM to claim (return via stack)
+ *               Return VECTOR_PASSON to pass on (return via r14)
+ **************************************************************************/
+int WrchV_Handler(_kernel_swi_regs *r, void *pw)
+{
+    char c = r->r[0];
+    c = toupper(c);
+    r->r[0] = c;
+    return VECTOR_PASSON;
 }
